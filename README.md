@@ -22,13 +22,11 @@ These values should be specified as environment variables or passed on the Java 
 
 ## Test Execution
 
-Let's look at a few examples assuming we're trying to execute the main method of the GetURL class:
+To execute the test, use the __-D__ command line option to supply the above arguments to the test.
 
-    $ mvn -Dhttps.proxyHost=webcache.example.com test
+Example:
 
-All http connections will go through the proxy server at `webcache.example.com` listening on port `80` (we didn't specify any port, so the default one is used).
-
-    $ mvn -Dhttps.proxyHost=webcache.example.com -Dhttps.proxyPort=3128 -Dhttps.proxyUser=myproxyuser -Dhttps.proxyPassword=password test
+    $ mvn -Dhttps.proxyHost=squid.example.com -Dhttps.proxyPort=3128 -Dhttps.proxyUser=myproxyuser -Dhttps.proxyPassword=password test
     ...
     -------------------------------------------------------
      T E S T S
