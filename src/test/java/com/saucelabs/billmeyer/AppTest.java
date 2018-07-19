@@ -11,13 +11,17 @@ import okhttp3.Response;
 import okhttp3.Route;
 
 import javax.naming.Context;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
+import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.Hashtable;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -62,24 +66,31 @@ public class AppTest extends TestCase
         checkURL("https://app.testobject.com/api/rest/releaseVersion", null);
         checkURL("https://saucelabs.com/rest/v1/info/status", null);
         getDNSInfo();
+
+        String[] records = getRecords("app.testobject.com", "A");
     }
 
     private void createHttpClient()
     {
         // @formatter:off
-        httpClient = new OkHttpClient.Builder()
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .writeTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-                .proxy(proxy)
-                .proxyAuthenticator(proxyAuthenticator)
-                .build();
+                .readTimeout(15, TimeUnit.SECONDS);
+
+        if (proxy != null)
+            builder = builder.proxy(proxy);
+
+        if (proxyAuthenticator != null)
+            builder = builder.proxyAuthenticator(proxyAuthenticator);
+
+        httpClient = builder.build();
         // @formatter:on
     }
 
     private void createProxy()
     {
-        final int proxyPort = Integer.parseInt(System.getProperty("https.proxyPort"));
+        final String proxyPort = System.getProperty("https.proxyPort");
         final String proxyHost = System.getProperty("https.proxyHost");
         final String proxyUser = System.getProperty("https.proxyUser");
         final String proxyPassword = System.getProperty("https.proxyPassword");
@@ -92,18 +103,24 @@ public class AppTest extends TestCase
         System.out.printf("https.proxyPassword: %s\n", proxyPassword);
         System.out.println();
 
-        proxyAuthenticator = new Authenticator()
+        if (proxyUser != null && proxyPassword != null)
         {
-            @Override
-            public Request authenticate(Route route, Response response)
-            throws IOException
+            proxyAuthenticator = new Authenticator()
             {
-                String credential = Credentials.basic(proxyUser, proxyPassword);
-                return response.request().newBuilder().header("Proxy-Authorization", credential).build();
-            }
-        };
+                @Override
+                public Request authenticate(Route route, Response response)
+                throws IOException
+                {
+                    String credential = Credentials.basic(proxyUser, proxyPassword);
+                    return response.request().newBuilder().header("Proxy-Authorization", credential).build();
+                }
+            };
+        }
 
-        proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+        if (proxyHost != null && proxyPort != null)
+        {
+            proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort)));
+        }
     }
 
     private void checkURL(String url, String expectedResponseBody)
@@ -158,11 +175,37 @@ public class AppTest extends TestCase
         try
         {
             DirContext context = new InitialDirContext(env);
-            String dnsServers = (String)context.getEnvironment().get("java.naming.provider.url");
+            String dnsServers = (String) context.getEnvironment().get(Context.PROVIDER_URL);
             System.out.printf("\t%s\n", dnsServers);
         }
         catch (NamingException e)
         {
         }
     }
+
+    public String[] getRecords(String hostName, String type)
+    {
+        Set<String> results = new TreeSet<String>();
+        try
+        {
+            Hashtable<String, String> envProps = new Hashtable<String, String>();
+            envProps.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
+            DirContext dnsContext = new InitialDirContext(envProps);
+            Attributes dnsEntries = dnsContext.getAttributes(hostName, new String[]{type});
+            if (dnsEntries != null)
+            {
+                NamingEnumeration<?> dnsEntryIterator = dnsEntries.get(type).getAll();
+                while (dnsEntryIterator.hasMoreElements())
+                {
+                    results.add(dnsEntryIterator.next().toString());
+                }
+            }
+        }
+        catch (NamingException e)
+        {
+            // Handle exception
+        }
+        return results.toArray(new String[results.size()]);
+    }
+
 }
