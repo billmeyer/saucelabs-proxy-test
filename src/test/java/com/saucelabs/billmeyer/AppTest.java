@@ -10,9 +10,14 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.Route;
 
+import javax.naming.Context;
+import javax.naming.NamingException;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.InitialDirContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.util.Hashtable;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -20,6 +25,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class AppTest extends TestCase
 {
+    private Authenticator proxyAuthenticator;
+    private Proxy proxy;
+    private OkHttpClient httpClient;
+
     /**
      * Create the test case
      *
@@ -44,9 +53,32 @@ public class AppTest extends TestCase
     public void testApp()
     throws IOException
     {
-        Request request;
-        Response response;
+        createProxy();
+        createHttpClient();
 
+        checkURL("https://ondemand.saucelabs.com", "OK,ondemand alive");
+        checkURL("https://us1.appium.testobject.com/wd/hub/status", null);
+        checkURL("https://eu1.appium.testobject.com/wd/hub/status", null);
+        checkURL("https://app.testobject.com/api/rest/releaseVersion", null);
+        checkURL("https://saucelabs.com/rest/v1/info/status", null);
+        getDNSInfo();
+    }
+
+    private void createHttpClient()
+    {
+        // @formatter:off
+        httpClient = new OkHttpClient.Builder()
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .writeTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .proxy(proxy)
+                .proxyAuthenticator(proxyAuthenticator)
+                .build();
+        // @formatter:on
+    }
+
+    private void createProxy()
+    {
         final int proxyPort = Integer.parseInt(System.getProperty("https.proxyPort"));
         final String proxyHost = System.getProperty("https.proxyHost");
         final String proxyUser = System.getProperty("https.proxyUser");
@@ -60,7 +92,7 @@ public class AppTest extends TestCase
         System.out.printf("https.proxyPassword: %s\n", proxyPassword);
         System.out.println();
 
-        Authenticator proxyAuthenticator = new Authenticator()
+        proxyAuthenticator = new Authenticator()
         {
             @Override
             public Request authenticate(Route route, Response response)
@@ -71,44 +103,66 @@ public class AppTest extends TestCase
             }
         };
 
-        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+        proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+    }
 
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .writeTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-                .proxy(proxy)
-                .proxyAuthenticator(proxyAuthenticator)
-                .build();
-
+    private void checkURL(String url, String expectedResponseBody)
+    {
         /////////////////////////////////////////////////////////////////////////////////
         // Test access to https://ondemand.saucelabs.com:443...
 
-        System.out.printf("Testing connection to saucelabs.com:\n");
-        request = new Request.Builder().url("https://ondemand.saucelabs.com:443").build();
-        response = client.newCall(request).execute();
+        System.out.printf("Testing connection to %s:\n", url);
+        Request request = new Request.Builder().url(url).build();
+        Response response = null;
+
+        try
+        {
+            response = httpClient.newCall(request).execute();
+        }
+        catch (IOException e)
+        {
+            System.err.printf("Failed to execute call to %s, err=%s\n", url, e.getMessage());
+            return;
+        }
 
         System.out.printf("===========================================\n");
         System.out.printf("Response Code: %d - %s\n", response.code(), response.message());
         assertTrue(response.code() == 200);
 
-        String line = response.body().string();
-        System.out.printf("Content: [%s]\n", line);
-        assertTrue(line.equals("OK,ondemand alive"));
+        String line = null;
+        try
+        {
+            line = response.body().string();
+            System.out.printf("Response Body: [%s]\n", line);
+            if (expectedResponseBody != null)
+            {
+                assertTrue(line.equals(expectedResponseBody));
+            }
+        }
+        catch (IOException e)
+        {
+            System.err.printf("Failed to read response body: %s\n", e.getMessage());
+        }
+
         System.out.println();
+    }
 
-        /////////////////////////////////////////////////////////////////////////////////
-        // Test access to https://us1.appium.testobject.com/wd/hub/status...
+    private static void getDNSInfo()
+    {
+        Hashtable<String, String> env = new Hashtable();
+        env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
 
-        System.out.printf("Testing connection to testobject.com:\n");
-        request = new Request.Builder().url("https://us1.appium.testobject.com/wd/hub/status").build();
-        response = client.newCall(request).execute();
-
+        System.out.printf("DNS Servers:\n");
         System.out.printf("===========================================\n");
-        System.out.printf("Response Code: %d - %s\n", response.code(), response.message());
-        System.out.println();
-        assertTrue(response.code() == 200);
 
-        // No content on the testobject side!
+        try
+        {
+            DirContext context = new InitialDirContext(env);
+            String dnsServers = (String)context.getEnvironment().get("java.naming.provider.url");
+            System.out.printf("\t%s\n", dnsServers);
+        }
+        catch (NamingException e)
+        {
+        }
     }
 }
