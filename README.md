@@ -2,12 +2,7 @@
 
 ## Background
 
-A simple Java application to attempt connecting to Sauce Labs cloud via Java's proxy settings.  Two URLs are tested:
-
-* https://ondemand.saucelabs.com:443
-* https://us1.appium.testobject.com/wd/hub/status
-
-The first URL confirms connectivity to Sauce Labs' desktop VMs and the second URL confirms connectivity to Sauce Labs' mobile cloud.
+A simple Java application to attempt connecting to Sauce Labs cloud via Java's proxy settings.  Several of the URLs used by Sauce Labs are tested.
 
 ## Test Arguments
 
@@ -34,21 +29,41 @@ Example:
     Running com.saucelabs.billmeyer.AppTest
     Proxy Settings:
     ===========================================
-    https.proxyHost: myproxyhost.acme.com
+    https.proxyHost: squid.example.com
     https.proxyPort: 3128
     https.proxyUser: myproxyuser
-    https.proxyPassword: somepassword
+    https.proxyPassword: password
     
-    Testing connection to saucelabs.com:
+    Testing connection to https://ondemand.saucelabs.com:
     ===========================================
     Response Code: 200 - OK
-    Content: [OK,ondemand alive]
+    Response Body: [OK,ondemand alive]
     
-    Testing connection to testobject.com:
+    Testing connection to https://us1.appium.testobject.com/wd/hub/status:
     ===========================================
     Response Code: 200 - OK
+    Response Body: []
     
-    Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.971 sec
+    Testing connection to https://eu1.appium.testobject.com/wd/hub/status:
+    ===========================================
+    Response Code: 200 - OK
+    Response Body: []
+    
+    Testing connection to https://app.testobject.com/api/rest/releaseVersion:
+    ===========================================
+    Response Code: 200 - OK
+    Response Body: [2018.07.17.18.08]
+    
+    Testing connection to https://saucelabs.com/rest/v1/info/status:
+    ===========================================
+    Response Code: 200 - OK
+    Response Body: [{"wait_time": 0.5774264610599974, "service_operational": true, "status_message": "Basic service status checks passed."}]
+    
+    DNS Servers:
+    ===========================================
+        dns://172.16.32.10
+        dns://172.17.32.10
+    Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.644 sec
     
     Results :
     
@@ -57,7 +72,7 @@ Example:
     [INFO] ------------------------------------------------------------------------
     [INFO] BUILD SUCCESS
     [INFO] ------------------------------------------------------------------------
-    [INFO] Total time: 1.786 s
-    [INFO] Finished at: 2018-07-17T15:47:14-05:00
-    [INFO] Final Memory: 13M/773M
+    [INFO] Total time: 4.043 s
+    [INFO] Finished at: 2018-07-19T14:48:52-05:00
+    [INFO] Final Memory: 17M/386M
     [INFO] ------------------------------------------------------------------------
