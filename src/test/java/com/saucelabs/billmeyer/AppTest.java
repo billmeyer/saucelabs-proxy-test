@@ -60,14 +60,16 @@ public class AppTest extends TestCase
         createProxy();
         createHttpClient();
 
-        checkURL("https://ondemand.saucelabs.com", "OK,ondemand alive");
-        checkURL("https://us1.appium.testobject.com/wd/hub/status", null);
-        checkURL("https://eu1.appium.testobject.com/wd/hub/status", null);
-        checkURL("https://app.testobject.com/api/rest/releaseVersion", null);
+        checkURL("https://ondemand.us-west-1.saucelabs.com", "{\"ready\":true,\"message\":\"Sauce" +
+                " Labs automated testing is fully operational\"}\n");
         checkURL("https://saucelabs.com/rest/v1/info/status", null);
         getDNSInfo();
 
-        String[] records = getRecords("app.testobject.com", "A");
+        String[] records = getRecords("app.saucelabs.com", "A");
+        if (records.length == 1)
+        {
+            assertTrue(records[0].equals("66.85.49.36"));
+        }
     }
 
     private void createHttpClient()
