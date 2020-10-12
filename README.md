@@ -34,25 +34,10 @@ Example:
     https.proxyUser: myproxyuser
     https.proxyPassword: password
     
-    Testing connection to https://ondemand.saucelabs.com:
+    Testing connection to https://ondemand.us-west-1.saucelabs.com:
     ===========================================
     Response Code: 200 - OK
     Response Body: [OK,ondemand alive]
-    
-    Testing connection to https://us1.appium.testobject.com/wd/hub/status:
-    ===========================================
-    Response Code: 200 - OK
-    Response Body: []
-    
-    Testing connection to https://eu1.appium.testobject.com/wd/hub/status:
-    ===========================================
-    Response Code: 200 - OK
-    Response Body: []
-    
-    Testing connection to https://app.testobject.com/api/rest/releaseVersion:
-    ===========================================
-    Response Code: 200 - OK
-    Response Body: [2018.07.17.18.08]
     
     Testing connection to https://saucelabs.com/rest/v1/info/status:
     ===========================================
